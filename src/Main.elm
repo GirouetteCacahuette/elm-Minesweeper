@@ -2,8 +2,8 @@ module Main exposing (Model, Msg(..), Page(..), Route(..), init, main, update, v
 
 import Browser exposing (Document, UrlRequest(..))
 import Browser.Navigation as Navigation exposing (Key)
-import Html exposing (Html, div, h1, text)
-import Html.Attributes exposing (class)
+import Html exposing (Html, a, div, h1, text)
+import Html.Attributes exposing (class, href)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>))
 
@@ -96,13 +96,16 @@ displayHomePage : Html Msg
 displayHomePage =
     div [ class "homePage" ]
         [ h1 [ class "Game title" ] [ text "Elm Minesweeper 💥 " ]
+        , a [ class "startGameButton", href "#game" ] [ text "Start game 💣" ]
         ]
 
 
 displayGamePage : Html Msg
 displayGamePage =
     div [ class "gamePage" ]
-        [ h1 [] [ text "This is the Game page." ] ]
+        [ h1 [] [ text "This is the Game page." ]
+        , a [ class "homeButton", href "" ] [ text "⬅ Back to Home" ]
+        ]
 
 
 parserUrlToPageAndCommand : Url -> ( Page, Cmd Msg )
