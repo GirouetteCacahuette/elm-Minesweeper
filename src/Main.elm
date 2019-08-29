@@ -2,8 +2,8 @@ module Main exposing (Model, Msg(..), Page(..), Route(..), init, main, update, v
 
 import Browser exposing (Document, UrlRequest(..))
 import Browser.Navigation as Navigation exposing (Key)
-import Html exposing (Html, div, h1, text)
-import Html.Attributes exposing (class)
+import Html exposing (Html, a, div, h1, text)
+import Html.Attributes exposing (class, href)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>))
 
@@ -16,6 +16,7 @@ type alias Model =
 
 type Route
     = HomeRoute
+    | GameRoute
 
 
 type Msg
@@ -26,6 +27,7 @@ type Msg
 
 type Page
     = HomePage
+    | GamePage
 
 
 main : Program () Model Msg
@@ -77,6 +79,9 @@ view model =
         [ case model.page of
             HomePage ->
                 displayHomePage
+
+            GamePage ->
+                displayGamePage
         ]
 
 
@@ -91,6 +96,15 @@ displayHomePage : Html Msg
 displayHomePage =
     div [ class "homePage" ]
         [ h1 [ class "Game title" ] [ text "Elm Minesweeper 💥 " ]
+        , a [ class "startGameButton", href "#game" ] [ text "Start game 💣" ]
+        ]
+
+
+displayGamePage : Html Msg
+displayGamePage =
+    div [ class "gamePage" ]
+        [ h1 [] [ text "This is the Game page." ]
+        , a [ class "homeButton", href "" ] [ text "⬅ Back to Home" ]
         ]
 
 
@@ -99,15 +113,19 @@ parserUrlToPageAndCommand url =
     let
         routeMaybe : Maybe Route
         routeMaybe =
-            Parser.parse routeParser url
+            Parser.parse routeParser { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
     in
     case Maybe.withDefault HomeRoute routeMaybe of
         HomeRoute ->
             ( HomePage, Cmd.none )
+
+        GameRoute ->
+            ( GamePage, Cmd.none )
 
 
 routeParser : Parser.Parser (Route -> Route) Route
 routeParser =
     Parser.oneOf
         [ Parser.map HomeRoute Parser.top
+        , Parser.map GameRoute (Parser.s "game")
         ]
