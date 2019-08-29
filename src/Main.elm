@@ -16,6 +16,7 @@ type alias Model =
 
 type Route
     = HomeRoute
+    | GameRoute
 
 
 type Msg
@@ -26,6 +27,7 @@ type Msg
 
 type Page
     = HomePage
+    | GamePage
 
 
 main : Program () Model Msg
@@ -77,6 +79,9 @@ view model =
         [ case model.page of
             HomePage ->
                 displayHomePage
+
+            GamePage ->
+                displayGamePage
         ]
 
 
@@ -94,20 +99,30 @@ displayHomePage =
         ]
 
 
+displayGamePage : Html Msg
+displayGamePage =
+    div [ class "gamePage" ]
+        [ h1 [] [ text "This is the Game page." ] ]
+
+
 parserUrlToPageAndCommand : Url -> ( Page, Cmd Msg )
 parserUrlToPageAndCommand url =
     let
         routeMaybe : Maybe Route
         routeMaybe =
-            Parser.parse routeParser url
+            Parser.parse routeParser { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
     in
     case Maybe.withDefault HomeRoute routeMaybe of
         HomeRoute ->
             ( HomePage, Cmd.none )
+
+        GameRoute ->
+            ( GamePage, Cmd.none )
 
 
 routeParser : Parser.Parser (Route -> Route) Route
 routeParser =
     Parser.oneOf
         [ Parser.map HomeRoute Parser.top
+        , Parser.map GameRoute (Parser.s "game")
         ]
