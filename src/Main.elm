@@ -1,4 +1,4 @@
-module Main exposing (Model, Msg(..), Page(..), Route(..), init, main, update, view)
+module Main exposing (Cell, Model, Msg(..), Page(..), Route(..), init, main, update, view)
 
 import Browser exposing (Document, UrlRequest(..))
 import Browser.Navigation as Navigation exposing (Key)
@@ -6,11 +6,28 @@ import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>))
+import Random
+
+
+mediumDifficultyNumberOfCells =
+    252
+
+
+mediumDifficultyNumberOfBombs =
+    40
 
 
 type alias Model =
     { key : Key
     , page : Page
+    }
+
+
+type alias Cell =
+    { id : Int
+    , mined : Bool
+    , number : Maybe Int
+    , clicked : Bool
     }
 
 
@@ -129,3 +146,12 @@ routeParser =
         [ Parser.map HomeRoute Parser.top
         , Parser.map GameRoute (Parser.s "game")
         ]
+
+
+getCells : Int -> List Cell
+getCells numberOfCells =
+    let
+        isBomb =
+            if (Random.generate (Random.int 1 100)) < 16
+            then True
+            else False
