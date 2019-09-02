@@ -3,24 +3,27 @@ module Main exposing (Cell, Model, Msg(..), Page(..), Route(..), displayView, in
 import Browser exposing (Document, UrlRequest(..))
 import Browser.Navigation as Navigation exposing (Key)
 import Html exposing (Html, a, button, div, h1, li, text, ul)
-import Html.Attributes exposing (class, href)
+import Html.Attributes exposing (class, href, style)
 import Html.Events exposing (onClick)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>))
+import Utils.Utils exposing (styles)
 
 
-mediumDifficultyNumberOfCells =
-    252
-
-
-mediumDifficultyNumberOfBombs =
-    40
+type alias GameInfo =
+    { numberOfCells : Int
+    , numberOfBombs : Int
+    , numberOfRows : Int
+    , numberOfColumns : Int
+    }
 
 
 type alias Model =
     { key : Key
     , page : Page
     , cells : List Cell
+    , gameInfo : GameInfo
+    , difficulty : Difficulty
     }
 
 
@@ -30,6 +33,12 @@ type alias Cell =
     , number : Maybe Int
     , clicked : Bool
     }
+
+
+type Difficulty
+    = Easy
+    | Medium
+    | Hard
 
 
 type Route
@@ -66,7 +75,16 @@ init _ url key =
         ( page, cmd ) =
             parserUrlToPageAndCommand url
     in
-    ( Model key page (getDefaultCells mediumDifficultyNumberOfCells), cmd )
+    ( Model
+        key
+        page
+        (getDefaultCells
+            hardDifficultyGameInfo.numberOfCells
+        )
+        hardDifficultyGameInfo
+        Medium
+    , cmd
+    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -85,10 +103,10 @@ update msg model =
                 ( page, cmd ) =
                     parserUrlToPageAndCommand url
             in
-            ( Model model.key page model.cells, cmd )
+            ( Model model.key page model.cells model.gameInfo model.difficulty, cmd )
 
         OnFirstCellClick cellId ->
-            ( Model model.key GamePage model.cells, Cmd.none )
+            ( Model model.key GamePage model.cells model.gameInfo model.difficulty, Cmd.none )
 
 
 view : Model -> Html Msg
@@ -107,7 +125,9 @@ displayView : Model -> Document Msg
 displayView model =
     Document
         "Minesweeper"
-        [ view model ]
+        [ styles
+        , view model
+        ]
 
 
 displayHomePage : Html Msg
@@ -123,7 +143,19 @@ displayGamePage model =
     div [ class "gamePage" ]
         [ h1 [] [ text "This is the Game page." ]
         , a [ class "homeButton", href "" ] [ text "⬅ Back to Home" ]
-        , ul [ class "cells" ]
+        , ul
+            [ class "cells"
+            , style "grid-template-columns"
+                ("repeat("
+                    ++ String.fromInt model.gameInfo.numberOfColumns
+                    ++ ", minmax(20px, 1fr))"
+                )
+            , style "grid-template-rows"
+                ("repeat("
+                    ++ String.fromInt model.gameInfo.numberOfRows
+                    ++ ", minmax(20px, 1fr))"
+                )
+            ]
             (List.map
                 (\cell ->
                     liCell cell
@@ -175,7 +207,7 @@ getDefaultCells numberOfCells =
     let
         ids : List Int
         ids =
-            List.range 0 numberOfCells
+            List.range 1 numberOfCells
     in
     List.map buildDefaultCellFromId ids
 
@@ -183,3 +215,18 @@ getDefaultCells numberOfCells =
 buildDefaultCellFromId : Int -> Cell
 buildDefaultCellFromId id =
     Cell id False Nothing False
+
+
+easyDifficultyGameInfo : GameInfo
+easyDifficultyGameInfo =
+    GameInfo 80 10 10 8
+
+
+mediumDifficultyGameInfo : GameInfo
+mediumDifficultyGameInfo =
+    GameInfo 252 40 14 18
+
+
+hardDifficultyGameInfo : GameInfo
+hardDifficultyGameInfo =
+    GameInfo 480 99 24 20

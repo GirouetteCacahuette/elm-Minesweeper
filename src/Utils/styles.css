@@ -1,0 +1,16 @@
+body {
+    text-align: center;
+}
+
+.cells {
+    display: grid;
+    padding: 0;
+    margin: auto;
+    text-align: center;
+    list-style-type: none;
+}
+
+.cells button {
+    width: 100%;
+    height: 100%;
+}
