@@ -1,12 +1,12 @@
-module Main exposing (Cell, Model, Msg(..), Page(..), Route(..), init, main, update, view)
+module Main exposing (Cell, Model, Msg(..), Page(..), Route(..), displayView, init, main, update)
 
 import Browser exposing (Document, UrlRequest(..))
 import Browser.Navigation as Navigation exposing (Key)
-import Html exposing (Html, a, div, h1, text)
+import Html exposing (Html, a, button, div, h1, li, text, ul)
 import Html.Attributes exposing (class, href)
+import Html.Events exposing (onClick)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>))
-import Random
 
 
 mediumDifficultyNumberOfCells =
@@ -20,6 +20,7 @@ mediumDifficultyNumberOfBombs =
 type alias Model =
     { key : Key
     , page : Page
+    , cells : List Cell
     }
 
 
@@ -37,9 +38,9 @@ type Route
 
 
 type Msg
-    = CaseClicked
-    | OnUrlRequest UrlRequest
+    = OnUrlRequest UrlRequest
     | OnUrlChange Url
+    | OnFirstCellClick Int
 
 
 type Page
@@ -65,15 +66,12 @@ init _ url key =
         ( page, cmd ) =
             parserUrlToPageAndCommand url
     in
-    ( Model key page, cmd )
+    ( Model key page (getDefaultCells mediumDifficultyNumberOfCells), cmd )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        CaseClicked ->
-            ( Model model.key HomePage, Cmd.none )
-
         OnUrlRequest urlRequest ->
             case urlRequest of
                 Internal url ->
@@ -87,7 +85,10 @@ update msg model =
                 ( page, cmd ) =
                     parserUrlToPageAndCommand url
             in
-            ( Model model.key page, cmd )
+            ( Model model.key page model.cells, cmd )
+
+        OnFirstCellClick cellId ->
+            ( Model model.key GamePage model.cells, Cmd.none )
 
 
 view : Model -> Html Msg
@@ -98,7 +99,7 @@ view model =
                 displayHomePage
 
             GamePage ->
-                displayGamePage
+                displayGamePage model
         ]
 
 
@@ -117,11 +118,32 @@ displayHomePage =
         ]
 
 
-displayGamePage : Html Msg
-displayGamePage =
+displayGamePage : Model -> Html Msg
+displayGamePage model =
     div [ class "gamePage" ]
         [ h1 [] [ text "This is the Game page." ]
         , a [ class "homeButton", href "" ] [ text "⬅ Back to Home" ]
+        , ul [ class "cells" ]
+            (List.map
+                (\cell ->
+                    liCell cell
+                )
+                model.cells
+            )
+        ]
+
+
+liCell : Cell -> Html Msg
+liCell cell =
+    li []
+        [ button [ onClick (OnFirstCellClick cell.id) ]
+            [ case cell.number of
+                Nothing ->
+                    text "Empty cell"
+
+                Just number ->
+                    text (String.fromInt number)
+            ]
         ]
 
 
@@ -148,10 +170,16 @@ routeParser =
         ]
 
 
-getCells : Int -> List Cell
-getCells numberOfCells =
+getDefaultCells : Int -> List Cell
+getDefaultCells numberOfCells =
     let
-        isBomb =
-            if (Random.generate (Random.int 1 100)) < 16
-            then True
-            else False
+        ids : List Int
+        ids =
+            List.range 0 numberOfCells
+    in
+    List.map buildDefaultCellFromId ids
+
+
+buildDefaultCellFromId : Int -> Cell
+buildDefaultCellFromId id =
+    Cell id False Nothing False
