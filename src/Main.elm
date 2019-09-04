@@ -5,13 +5,15 @@ import Browser.Navigation as Navigation exposing (Key)
 import Html exposing (Html, a, button, div, h1, li, text, ul)
 import Html.Attributes exposing (class, href, style)
 import Html.Events exposing (onClick)
+import Random exposing (Generator, int, list)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>))
 import Utils.Utils exposing (styles)
 
 
 type alias GameInfo =
-    { numberOfCells : Int
+    { difficulty : Difficulty
+    , numberOfCells : Int
     , numberOfBombs : Int
     , numberOfRows : Int
     , numberOfColumns : Int
@@ -23,7 +25,6 @@ type alias Model =
     , page : Page
     , cells : List Cell
     , gameInfo : GameInfo
-    , difficulty : Difficulty
     }
 
 
@@ -50,6 +51,7 @@ type Msg
     = OnUrlRequest UrlRequest
     | OnUrlChange Url
     | OnFirstCellClick Int
+    | OnBombsIdsGenerated Int (List Int)
 
 
 type Page
@@ -79,10 +81,9 @@ init _ url key =
         key
         page
         (getDefaultCells
-            hardDifficultyGameInfo.numberOfCells
+            mediumDifficultyGameInfo.numberOfCells
         )
-        hardDifficultyGameInfo
-        Medium
+        mediumDifficultyGameInfo
     , cmd
     )
 
@@ -103,10 +104,18 @@ update msg model =
                 ( page, cmd ) =
                     parserUrlToPageAndCommand url
             in
-            ( Model model.key page model.cells model.gameInfo model.difficulty, cmd )
+            ( Model model.key page model.cells model.gameInfo, cmd )
 
         OnFirstCellClick cellId ->
-            ( Model model.key GamePage model.cells model.gameInfo model.difficulty, Cmd.none )
+            ( model, Random.generate (OnBombsIdsGenerated cellId) (bombsIdsGenerator model.gameInfo) )
+
+        OnBombsIdsGenerated firstClickedCellId bombsIdsList ->
+            ( { model
+                | cells =
+                    getFilledCells firstClickedCellId model.gameInfo.numberOfCells bombsIdsList
+              }
+            , Cmd.none
+            )
 
 
 view : Model -> Html Msg
@@ -148,13 +157,14 @@ displayGamePage model =
             , style "grid-template-columns"
                 ("repeat("
                     ++ String.fromInt model.gameInfo.numberOfColumns
-                    ++ ", minmax(20px, 1fr))"
+                    ++ ", 40px)"
                 )
             , style "grid-template-rows"
                 ("repeat("
                     ++ String.fromInt model.gameInfo.numberOfRows
-                    ++ ", minmax(20px, 1fr))"
+                    ++ ", 40px)"
                 )
+            , style "width" (String.fromInt (model.gameInfo.numberOfColumns * 40) ++ "px")
             ]
             (List.map
                 (\cell ->
@@ -168,13 +178,33 @@ displayGamePage model =
 liCell : Cell -> Html Msg
 liCell cell =
     li []
-        [ button [ onClick (OnFirstCellClick cell.id) ]
-            [ case cell.number of
-                Nothing ->
-                    text "Empty cell"
+        [ button
+            [ onClick (OnFirstCellClick cell.id)
+            , class
+                (case cell.clicked of
+                    True ->
+                        "clicked"
 
-                Just number ->
-                    text (String.fromInt number)
+                    False ->
+                        "unclicked"
+                )
+            ]
+            [ case cell.clicked of
+                True ->
+                    case cell.mined of
+                        True ->
+                            text "💥"
+
+                        False ->
+                            case cell.number of
+                                Nothing ->
+                                    text ""
+
+                                Just number ->
+                                    text (String.fromInt number)
+
+                False ->
+                    text ""
             ]
         ]
 
@@ -217,16 +247,42 @@ buildDefaultCellFromId id =
     Cell id False Nothing False
 
 
+bombsIdsGenerator : GameInfo -> Generator (List Int)
+bombsIdsGenerator { numberOfBombs, numberOfCells } =
+    list numberOfBombs (int 1 numberOfCells)
+
+
+getFilledCells : Int -> Int -> List Int -> List Cell
+getFilledCells firstClickedCellId numberOfCells bombsIds =
+    let
+        ids : List Int
+        ids =
+            List.range 1 numberOfCells
+    in
+    List.map
+        (\id ->
+            if firstClickedCellId == id then
+                Cell id False Nothing True
+
+            else if List.member id bombsIds then
+                Cell id True Nothing False
+
+            else
+                Cell id False Nothing False
+        )
+        ids
+
+
 easyDifficultyGameInfo : GameInfo
 easyDifficultyGameInfo =
-    GameInfo 80 10 10 8
+    GameInfo Easy 80 10 10 8
 
 
 mediumDifficultyGameInfo : GameInfo
 mediumDifficultyGameInfo =
-    GameInfo 252 40 14 18
+    GameInfo Medium 252 40 14 18
 
 
 hardDifficultyGameInfo : GameInfo
 hardDifficultyGameInfo =
-    GameInfo 480 99 24 20
+    GameInfo Hard 480 99 24 20
