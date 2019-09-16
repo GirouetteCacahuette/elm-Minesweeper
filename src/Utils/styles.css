@@ -1,0 +1,20 @@
+body {
+    text-align: center;
+}
+
+.cells {
+    display: grid;
+    padding: 0;
+    margin: auto;
+    justify-items: center;
+    list-style-type: none;
+}
+
+.cells button {
+    width: 40px;
+    height: 40px;
+}
+
+.cells .clicked {
+    background-color: whitesmoke;
+}
